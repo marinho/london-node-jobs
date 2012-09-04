@@ -1,4 +1,5 @@
 import datetime
+import json
 
 from london.shortcuts import json_response, get_object_or_404
 
@@ -23,7 +24,10 @@ def get_filtered_jobs(request):
     jobs = Job.query()
 
     if request.GET:
-        jobs = jobs.filter(**dict([(k,request.GET[k]) for k in request.GET]))
+        values = dict([(k,request.GET[k]) for k in request.GET if k != 'exclude_ids'])
+        jobs = jobs.filter(**values)
+        if request.GET.get('exclude_ids',None):
+            jobs = jobs.exclude(pk__in=request.GET['exclude_ids'].split(','))
 
     return jobs
 
@@ -39,8 +43,11 @@ PUBLIC_FIELDS = ('key', 'name', 'params', 'sender', 'destinatary', 'when', 'stat
 def jobs_post(request): # FIXME use method POST
     job = Job()
     for field in PUBLIC_FIELDS:
-        if field in request:
-            job[field] = request[field]
+        if field in request.GET:
+            if field == 'params':
+                job[field] = json.loads(request[field])
+            else:
+                job[field] = request[field]
     job.save()
 
     return format_job(job)
@@ -76,8 +83,11 @@ def jobs_update(request, id):
     job = get_object_or_404(Job, pk=id)
 
     for field in PUBLIC_FIELDS:
-        if field in request:
-            job[field] = request[field]
+        if field in request.GET:
+            if field == 'params':
+                job[field] = json.loads(request[field])
+            else:
+                job[field] = request[field]
 
     job.save()
 
