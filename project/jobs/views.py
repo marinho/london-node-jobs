@@ -24,10 +24,12 @@ def get_filtered_jobs(request):
     jobs = Job.query()
 
     if request.GET:
-        values = dict([(k,request.GET[k]) for k in request.GET if k != 'exclude_ids'])
+        values = dict([(k,request.GET[k]) for k in request.GET if k not in ('exclude_ids','destinatary_or_empty')])
         jobs = jobs.filter(**values)
         if request.GET.get('exclude_ids',None):
             jobs = jobs.exclude(pk__in=request.GET['exclude_ids'].split(','))
+        if request.GET.get('destinatary_or_empty',None):
+            jobs = jobs.filter(destinatary__in=(request.GET['destinatary_or_empty'],None,''))
 
     return jobs
 
